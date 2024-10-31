@@ -28,15 +28,15 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: process.env.CI ? "html" : undefined,
+  reporter: process.env.CI ? "html" : "html",
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: "http://localhost:3005",
 
     /* Collect trace on failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: "retain-on-failure",
-    video: process.env.CI ? "on" : undefined,
+    trace: "on",
+    video: process.env.CI ? "on" : "on",
   },
 
   /* Configure projects for major browsers */
@@ -46,7 +46,7 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        storageState: "playwright/.cache/.auth/user.json",
+        // storageState: "playwright/.cache/.auth/user.json",
       },
       dependencies: ["setup"],
     },

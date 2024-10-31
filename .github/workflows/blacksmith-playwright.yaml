@@ -1,0 +1,75 @@
+name: Test execution on Github server
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  test:
+    timeout-minutes: 10
+    runs-on: blacksmith-4vcpu-ubuntu-2204
+    continue-on-error: true
+
+    steps:
+    - name: checkout repo
+      uses: actions/checkout@v4
+
+    - name: setup node
+      uses: useblacksmith/setup-node@v5
+      with:
+        node-version: 20
+
+    - name: Cache Node Modules
+      id: cache-node-modules
+      uses: useblacksmith/cache@v5
+      with:
+        path: |
+          node_modules
+        key: modules-${{ hashFiles('package-lock.json') }}
+    
+    - name: Cache Playwright Binaries
+      id: cache-playwright
+      uses: useblacksmith/cache@v5
+      with:
+        path: |
+          ~/.cache/ms-playwright
+        key: playwright-${{ hashFiles('package-lock.json') }}
+
+    - name: Install dependencies
+      id: install-dependencies
+      if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      run: npm ci
+
+    - name: Install Playwright Browsers
+      id: install-playwright-browsers
+      if: steps.cache-playwright.outputs.cache-hit != 'true'
+      run: npx playwright install --with-deps
+
+    - name: Run Playwright tests
+      continue-on-error: true
+      run: |
+        npx playwright test
+       
+    - name: Get the failure count
+      id: tests
+      run: |
+        export count=$(cat ./playwright-report/result.txt | grep Failed | cut -d ':' -f 2 | tr -d ' ') 
+        echo "fail_count=$count" >> "$GITHUB_OUTPUT"
+        echo $count
+  
+    - name: Cache Test Report
+      id: cache-test-report
+      uses: useblacksmith/cache@v5
+      with:
+        path: |
+          playwright-report
+        key: modules-${{ hashFiles('playwright-report/data/*.webm') }}
+   
+   - name: Fail the job if there any failed case
+     if:  steps.tests.outputs.fail_count != '0' 
+     run : |
+          exit 1
+
+    outputs:
+          fail_count: ${{ steps.tests.outputs.fail_count }}
+
+            
