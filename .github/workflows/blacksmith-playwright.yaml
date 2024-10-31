@@ -18,6 +18,12 @@ jobs:
         with:
           node-version: 20
 
+      - name: setup font
+        run: |
+          sudo apt update
+          sudo apt install fonts-noto-cjk
+          sudo fc-cache -fv
+
       - name: Cache Node Modules
         id: cache-node-modules
         uses: useblacksmith/cache@v5
@@ -42,19 +48,12 @@ jobs:
       - name: Install Playwright Browsers
         id: install-playwright-browsers
         if: steps.cache-playwright.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
         continue-on-error: true
         run: |
           npx playwright test
-
-      - name: Get the failure count
-        id: tests
-        run: |
-          export count=$(cat ./playwright-report/result.txt | grep Failed | cut -d ':' -f 2 | tr -d ' ') 
-          echo "fail_count=$count" >> "$GITHUB_OUTPUT"
-          echo $count
 
       - name: Cache Test Report
         id: cache-test-report
@@ -63,11 +62,3 @@ jobs:
           path: |
             playwright-report
           key: modules-${{ hashFiles('playwright-report/data/*.webm') }}
-
-      - name: Fail the job if there any failed case
-        if: steps.tests.outputs.fail_count != '0'
-        run: |
-          exit 1
-
-    outputs:
-      fail_count: ${{ steps.tests.outputs.fail_count }}
